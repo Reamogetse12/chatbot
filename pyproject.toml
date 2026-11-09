@@ -1,7 +1,7 @@
 [project]
 name = "chatbot"
 version = "0.1.0"
-description = "Add your description here"
+description = "AI chatbot built with Langchain and Groq"
 readme = "README.md"
 authors = [
     { name = "Reamogetse Mogotsi", email = "mogotsireamogetse@gmail.com" }
