@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MyChatbot — AI Study Mate Demo</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    :root {
+      --bg:        #1e1e2e;
+      --surface:   #2d2d3f;
+      --header:    #12121f;
+      --accent:    #5865f2;
+      --accent-h:  #4752c4;
+      --green:     #43b581;
+      --text:      #e0e0f0;
+      --muted:     #888899;
+      --user-bubble: #5865f2;
+      --bot-bubble:  #2d2d3f;
+      --radius:    18px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem 4rem;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      text-align: center;
+      max-width: 640px;
+      margin-bottom: 2.5rem;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(88,101,242,0.15);
+      border: 1px solid rgba(88,101,242,0.35);
+      color: #a5b4fc;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 0.35rem 0.9rem;
+      border-radius: 100px;
+      margin-bottom: 1.25rem;
+    }
+    .hero h1 {
+      font-size: clamp(1.8rem, 5vw, 2.8rem);
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 1rem;
+    }
+    .hero h1 span { color: var(--accent); }
+    .hero p {
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.7;
+      margin-bottom: 1.75rem;
+    }
+    .hero-btns {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.7rem 1.5rem;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background 0.2s, transform 0.2s;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-h); transform: translateY(-2px); }
+    .btn-outline {
+      background: transparent;
+      color: var(--accent);
+      border: 2px solid var(--accent);
+    }
+    .btn-outline:hover { background: rgba(88,101,242,0.12); transform: translateY(-2px); }
+
+    /* ── Chat window ── */
+    .chat-wrapper {
+      width: 100%;
+      max-width: 520px;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    /* header */
+    .chat-header {
+      background: var(--header);
+      padding: 0.9rem 1.1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .chat-header-left {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .avatar-circle {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem;
+    }
+    .chat-header-name { font-weight: 700; font-size: 0.95rem; }
+    .chat-header-sub  { font-size: 0.75rem; color: var(--muted); }
+    .online-dot {
+      font-size: 0.78rem;
+      color: var(--green);
+      font-weight: 600;
+    }
+
+    /* messages */
+    .chat-messages {
+      background: var(--bg);
+      padding: 1.25rem 1rem;
+      min-height: 380px;
+      max-height: 420px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      scroll-behavior: smooth;
+    }
+    .chat-messages::-webkit-scrollbar { width: 6px; }
+    .chat-messages::-webkit-scrollbar-track { background: transparent; }
+    .chat-messages::-webkit-scrollbar-thumb { background: #3d3d5c; border-radius: 3px; }
+
+    .msg-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+    }
+    .msg-row.user { flex-direction: row-reverse; }
+
+    .msg-avatar {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .msg-avatar.bot  { background: var(--green); }
+    .msg-avatar.user { background: var(--accent); }
+
+    .bubble {
+      max-width: 72%;
+      padding: 0.65rem 0.95rem;
+      border-radius: var(--radius);
+      font-size: 0.88rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+    .bubble.bot  {
+      background: var(--bot-bubble);
+      color: var(--text);
+      border-bottom-left-radius: 4px;
+    }
+    .bubble.user {
+      background: var(--user-bubble);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+
+    /* typing indicator */
+    .typing-dots {
+      display: flex;
+      gap: 4px;
+      padding: 0.65rem 0.95rem;
+      background: var(--bot-bubble);
+      border-radius: var(--radius);
+      border-bottom-left-radius: 4px;
+      width: fit-content;
+    }
+    .typing-dots span {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+      animation: bounce 1.2s infinite;
+    }
+    .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-6px); }
+    }
+
+    /* input */
+    .chat-input {
+      background: var(--header);
+      padding: 0.75rem 1rem;
+      display: flex;
+      gap: 0.6rem;
+    }
+    .chat-input input {
+      flex: 1;
+      background: var(--surface);
+      border: none;
+      border-radius: 10px;
+      padding: 0.6rem 1rem;
+      color: var(--text);
+      font-size: 0.9rem;
+      font-family: inherit;
+      outline: none;
+    }
+    .chat-input input::placeholder { color: var(--muted); }
+    .chat-input input:focus { outline: 2px solid var(--accent); }
+    .chat-input button {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 0.6rem 1.1rem;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s;
+      font-family: inherit;
+    }
+    .chat-input button:hover { background: var(--accent-h); transform: scale(1.05); }
+    .chat-input button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* ── Features ── */
+    .features {
+      max-width: 640px;
+      width: 100%;
+      margin-top: 3rem;
+    }
+    .features h2 {
+      text-align: center;
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      color: var(--text);
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+    }
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 14px;
+      padding: 1.25rem;
+      text-align: center;
+    }
+    .feature-card i {
+      font-size: 1.5rem;
+      color: var(--accent);
+      margin-bottom: 0.6rem;
+    }
+    .feature-card h3 { font-size: 0.9rem; font-weight: 700; margin-bottom: 0.4rem; }
+    .feature-card p  { font-size: 0.8rem; color: var(--muted); line-height: 1.5; }
+
+    /* ── Setup section ── */
+    .setup {
+      max-width: 640px;
+      width: 100%;
+      margin-top: 2.5rem;
+      background: var(--surface);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 16px;
+      padding: 1.5rem;
+    }
+    .setup h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem; }
+    .setup pre {
+      background: var(--header);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      font-size: 0.82rem;
+      color: #a5b4fc;
+      overflow-x: auto;
+      line-height: 1.7;
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+    }
+    .setup p { font-size: 0.88rem; color: var(--muted); margin-bottom: 0.75rem; }
+
+    /* ── Footer note ── */
+    .demo-note {
+      margin-top: 2rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+      text-align: center;
+    }
+    .demo-note a { color: var(--accent); text-decoration: none; }
+    .demo-note a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-badge"><i class="fas fa-robot"></i> AI Study Mate</div>
+    <h1>MyChatbot —<br><span>Your Personal Study Mate</span></h1>
+    <p>
+      An AI-powered chatbot built with Python, LangChain, and Groq. It never gives you direct answers —
+      it explains concepts, gives you practice exercises, and guides you until you truly understand.
+    </p>
+    <div class="hero-btns">
+      <a href="https://github.com/Reamogetse12/chatbot" target="_blank" rel="noopener" class="btn btn-primary">
+        <i class="fab fa-github"></i> View Source Code
+      </a>
+      <a href="#try-it" class="btn btn-outline">
+        <i class="fas fa-play"></i> Try the Demo
+      </a>
+    </div>
+  </div>
+
+  <!-- Chat window -->
+  <div class="chat-wrapper" id="try-it">
+    <div class="chat-header">
+      <div class="chat-header-left">
+        <div class="avatar-circle">🤖</div>
+        <div>
+          <div class="chat-header-name">MyChatbot</div>
+          <div class="chat-header-sub">Your friendly study mate</div>
+        </div>
+      </div>
+      <div class="online-dot">● ONLINE</div>
+    </div>
+
+    <div class="chat-messages" id="chat-messages">
+      <!-- seeded by JS -->
+    </div>
+
+    <div class="chat-input">
+      <input type="text" id="user-input" placeholder="Ask me anything to study…" autocomplete="off" />
+      <button id="send-btn" onclick="sendMessage()"><i class="fas fa-paper-plane"></i> Send</button>
+    </div>
+  </div>
+
+  <!-- Features -->
+  <div class="features">
+    <h2>What makes it special</h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <i class="fas fa-brain"></i>
+        <h3>Socratic Method</h3>
+        <p>Never gives direct answers — always explains and tests your understanding first.</p>
+      </div>
+      <div class="feature-card">
+        <i class="fas fa-dumbbell"></i>
+        <h3>Practice Exercises</h3>
+        <p>Generates similar exercises after each explanation to solidify your learning.</p>
+      </div>
+      <div class="feature-card">
+        <i class="fas fa-comments"></i>
+        <h3>Hint System</h3>
+        <p>When you're stuck, it gives progressive hints instead of spoiling the answer.</p>
+      </div>
+      <div class="feature-card">
+        <i class="fas fa-bolt"></i>
+        <h3>Powered by Groq</h3>
+        <p>Uses LangChain + Groq for fast, intelligent responses with conversational memory.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Setup -->
+  <div class="setup">
+    <h2><i class="fas fa-terminal" style="color:var(--accent);margin-right:0.5rem"></i>Run it locally</h2>
+    <p>Clone the repo and run in a few commands:</p>
+    <pre># 1. Clone the repo
+git clone https://github.com/Reamogetse12/chatbot.git
+cd chatbot
+
+# 2. Install dependencies (uses uv)
+pip install uv
+uv sync
+
+# 3. Add your Groq API key to .env
+echo GROQ_API_KEY=your_key_here > .env
+
+# 4. Launch the chatbot
+python chatbot.py</pre>
+  </div>
+
+  <p class="demo-note">
+    This is an interactive demo — responses are simulated in the browser.<br>
+    For the real AI experience, <a href="https://github.com/Reamogetse12/chatbot" target="_blank" rel="noopener">run it locally</a> with your Groq API key.
+  </p>
+
+  <script>
+    const messagesEl = document.getElementById('chat-messages');
+    const inputEl    = document.getElementById('user-input');
+    const sendBtn    = document.getElementById('send-btn');
+
+    // Simulated responses for the demo
+    const responses = [
+      {
+        match: /hello|hi|hey/i,
+        reply: "Hello! 👋 I'm your study mate. Tell me a topic you're struggling with and I'll help you understand it step by step — no spoilers!"
+      },
+      {
+        match: /python|loop|for|while/i,
+        reply: "Great topic! Let me explain loops in Python.\n\nA loop lets you repeat a block of code. A `for` loop iterates over a sequence:\n\n  for i in range(5):\n      print(i)\n\n🎯 Practice: Write a for loop that prints all even numbers from 0 to 10. Give it a go!"
+      },
+      {
+        match: /function|def|method/i,
+        reply: "Functions are reusable blocks of code. In Python:\n\n  def greet(name):\n      return f\"Hello, {name}!\"\n\nThe `def` keyword defines a function, and `return` sends back the result.\n\n🎯 Practice: Write a function called `square` that takes a number and returns its square. Try it!"
+      },
+      {
+        match: /recursion|recursive/i,
+        reply: "Recursion is when a function calls itself to solve smaller pieces of a problem.\n\nThink of it like Russian dolls — each doll contains a smaller version of itself until you reach the smallest one.\n\n🎯 Practice: Can you write a recursive function to calculate the factorial of a number? (Hint: factorial(5) = 5 × 4 × 3 × 2 × 1)"
+      },
+      {
+        match: /answer|tell me|just give/i,
+        reply: "Nice try! 😄 I won't give you the answer directly — that's not how learning works. But here's a hint: think about the base case first. What should your function return when the input is 0 or 1?"
+      },
+      {
+        match: /correct|right|yes|that's it/i,
+        reply: "🎉 Excellent work! You've got it right! Now let's level up:\n\n🎯 Challenge: Can you modify your solution to handle negative numbers and return an error message for invalid input?"
+      },
+    ];
+
+    const defaultReply = "Interesting question! Let me break it down for you step by step.\n\nFirst, let's understand the core idea behind what you're asking. Once you grasp the concept, I'll give you a practice exercise to test your understanding.\n\n🎯 What specific part would you like me to explain first?";
+
+    function addMessage(text, role) {
+      const row = document.createElement('div');
+      row.className = `msg-row ${role}`;
+
+      const av = document.createElement('div');
+      av.className = `msg-avatar ${role}`;
+      av.textContent = role === 'bot' ? 'AI' : 'You';
+
+      const bubble = document.createElement('div');
+      bubble.className = `bubble ${role}`;
+      bubble.textContent = text;
+
+      if (role === 'user') {
+        row.appendChild(bubble);
+        row.appendChild(av);
+      } else {
+        row.appendChild(av);
+        row.appendChild(bubble);
+      }
+
+      messagesEl.appendChild(row);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function showTyping() {
+      const row = document.createElement('div');
+      row.className = 'msg-row bot';
+      row.id = 'typing-row';
+
+      const av = document.createElement('div');
+      av.className = 'msg-avatar bot';
+      av.textContent = 'AI';
+
+      const dots = document.createElement('div');
+      dots.className = 'typing-dots';
+      dots.innerHTML = '<span></span><span></span><span></span>';
+
+      row.appendChild(av);
+      row.appendChild(dots);
+      messagesEl.appendChild(row);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function hideTyping() {
+      const row = document.getElementById('typing-row');
+      if (row) row.remove();
+    }
+
+    function getReply(text) {
+      for (const r of responses) {
+        if (r.match.test(text)) return r.reply;
+      }
+      return defaultReply;
+    }
+
+    function sendMessage() {
+      const text = inputEl.value.trim();
+      if (!text) return;
+
+      inputEl.value = '';
+      sendBtn.disabled = true;
+      inputEl.disabled = true;
+
+      addMessage(text, 'user');
+      showTyping();
+
+      const delay = 900 + Math.random() * 700;
+      setTimeout(() => {
+        hideTyping();
+        addMessage(getReply(text), 'bot');
+        sendBtn.disabled = false;
+        inputEl.disabled = false;
+        inputEl.focus();
+      }, delay);
+    }
+
+    inputEl.addEventListener('keydown', e => {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    // Seed initial message
+    addMessage("Hello! 👋 I'm your AI study mate.\n\nI won't give you direct answers — instead I'll explain concepts step by step and give you exercises to test your understanding.\n\nTry asking me about Python, loops, functions, recursion, or any topic you're studying!", 'bot');
+  </script>
+
+</body>
+</html>
